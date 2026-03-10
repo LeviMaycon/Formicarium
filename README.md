@@ -1,4 +1,7 @@
 # Formicarium — Ant Colony Simulator
+
+<img width="1902" height="900" alt="image" src="https://github.com/user-attachments/assets/22dea79e-102c-499e-a0e9-a8140587f722" />
+
 ### Documentação Técnica Completa
 
 ---
@@ -925,5 +928,3 @@ Em seguida, adicione `'MUSHROOM'` ao array de tipos em `spawnSingleFood()` e `sp
 - Para otimização adicional: reduzir `cellSize` de 8 para 12+ reduz o grid e melhora performance
 
 ---
-
-*Documentação gerada para Formicarium v1.0 — 1734 linhas de JavaScript puro, sem dependências externas.*
