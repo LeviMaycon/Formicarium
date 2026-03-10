@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Formicarium — Ant Colony Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0806;
+    --surface: #110e0a;
+    --surface2: #1a1510;
+    --border: rgba(180,140,70,0.15);
+    --border-bright: rgba(180,140,70,0.35);
+    --accent: #c8920e;
+    --accent2: #e8b840;
+    --text: #d4c8a8;
+    --text-dim: #7a6a4a;
+    --text-bright: #f0e0c0;
+    --worker-color: #c8a060;
+    --soldier-color: #8090c0;
+    --queen-color: #e8c840;
+    --egg-color: #f0f0e8;
+    --larva-color: #f0d890;
+    --pupa-color: #c8b880;
+    --food-color: #88c858;
+    --alarm-color: #e84040;
+    --font-mono: 'Space Mono', monospace;
+    --font-display: 'Playfair Display', serif;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    overflow: hidden;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    z-index: 10;
+  }
+
+  .header-title {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    color: var(--accent2);
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 20px rgba(200,150,20,0.4);
+  }
+
+  .header-subtitle {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .header-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  button {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    background: var(--surface2);
+    color: var(--accent);
+    border: 1px solid var(--border-bright);
+    padding: 6px 16px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    transition: all 0.2s ease;
+  }
+
+  button:hover {
+    background: var(--accent);
+    color: var(--bg);
+    box-shadow: 0 0 12px rgba(200,140,20,0.4);
+  }
+
+  .main-layout {
+    flex: 1 1 0;
+    display: flex;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .canvas-wrapper {
+    flex: 1 1 0;
+    position: relative;
+    overflow: hidden;
+    background: #050402;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  canvas#simCanvas {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    image-rendering: pixelated;
+  }
+
+  .canvas-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse at 0% 0%, rgba(0,0,0,0.4) 0%, transparent 50%),
+      radial-gradient(ellipse at 100% 0%, rgba(0,0,0,0.4) 0%, transparent 50%),
+      radial-gradient(ellipse at 0% 100%, rgba(0,0,0,0.5) 0%, transparent 50%),
+      radial-gradient(ellipse at 100% 100%, rgba(0,0,0,0.5) 0%, transparent 50%);
+  }
+
+  .canvas-label {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  .hud-panel {
+    flex: 0 0 220px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px 14px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .hud-panel::-webkit-scrollbar { width: 4px; }
+  .hud-panel::-webkit-scrollbar-track { background: transparent; }
+  .hud-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .hud-section {
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hud-section:last-child { border-bottom: none; }
+
+  .hud-title {
+    font-size: 0.52rem;
+    color: var(--accent);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+
+  .hud-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.62rem;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    line-height: 1.4;
+  }
+
+  .hud-row span:last-child {
+    color: var(--text);
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .workers span:last-child { color: var(--worker-color); }
+  .soldiers span:last-child { color: var(--soldier-color); }
+  .queen-row span:last-child { color: var(--queen-color); }
+  .egg-row span:last-child { color: var(--egg-color); }
+  .larva-row span:last-child { color: var(--larva-color); }
+  .pupa-row span:last-child { color: var(--pupa-color); }
+  .food-row span:last-child { color: var(--food-color); }
+  .predator-row span:last-child { color: var(--alarm-color); }
+  .warn-row { animation: pulseWarn 0.8s ease-in-out infinite alternate; }
+  .warn-row span { color: var(--alarm-color) !important; font-size: 0.58rem; }
+  .weather-row span:last-child { color: #90d0ff; }
+
+  @keyframes pulseWarn {
+    from { opacity: 0.6; }
+    to { opacity: 1; }
+  }
+
+  .food-bar {
+    height: 3px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    margin: 2px 0 6px;
+    overflow: hidden;
+  }
+
+  .food-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--food-color), #c8e840);
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.57rem;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .trail-dot { background: rgba(230,180,50,0.85); }
+  .alarm-dot { background: rgba(220,30,30,0.85); }
+  .recruit-dot { background: rgba(220,120,20,0.85); }
+  .territory-dot { background: rgba(50,80,200,0.85); }
+
+  footer {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 0.52rem;
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+  }
+
+  .status-bar {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .status-bar span { color: var(--text-dim); }
+  .status-bar strong { color: var(--accent); }
+
+  .grain-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 128px 128px;
+  }
+</style>
+</head>
+<body>
+<div class="grain-overlay"></div>
+
+<header>
+  <div>
+    <div class="header-title">Formicarium</div>
+    <div class="header-subtitle">Ant Colony Simulation — Stigmergy Engine v1.0</div>
+  </div>
+  <div class="header-controls">
+    <button id="pauseBtn" onclick="window.sim && window.sim.pause(); this.textContent = this.textContent === 'Pause' ? 'Resume' : 'Pause'">Pause</button>
+    <button onclick="location.reload()">Restart</button>
+  </div>
+</header>
+
+<div class="main-layout">
+  <div class="canvas-wrapper">
+    <canvas id="simCanvas"></canvas>
+    <div class="canvas-overlay"></div>
+    <div class="canvas-label">scroll to zoom · watch pheromone trails emerge</div>
+  </div>
+  <div class="hud-panel" id="hudPanel"></div>
+</div>
+
+<footer>
+  <div class="status-bar">
+    <span>Architecture: <strong>OOP / FSM / Stigmergy</strong></span>
+    <span>·</span>
+    <span>Pheromones: <strong>Trail · Alarm · Territory · Recruit</strong></span>
+    <span>·</span>
+    <span>Lifecycle: <strong>Egg → Larva → Pupa → Adult</strong></span>
+    <span>·</span>
+    <span>60fps target via <strong>requestAnimationFrame</strong></span>
+  </div>
+</footer>
+
+<script src="ant_simulator.js"></script>
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('simCanvas');
+    const hudPanel = document.getElementById('hudPanel');
+    window.sim = new Simulator(canvas, hudPanel);
+    window.sim.start();
+  });
+</script>
+</body>
+</html> 
